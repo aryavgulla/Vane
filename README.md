@@ -6,19 +6,19 @@
 
 ## 🏛️ Architecture & Tech Stack
 
-Vane utilizes a zero-hardware architecture designed for seamless cloud deployment on AWS while remaining cost-free and secure via serverless patterns.
+Vane utilizes a zero-hardware, serverless-ready architecture designed for AWS deployment.
 
-* **Frontend:** React + Vite, styled using a bespoke enterprise brutalist UI/UX system derived from Google Stitch.
-* **Backend:** Python FastAPI, utilizing Pandas for real-time statistical baseline drift calculations.
-* **AI Engine:** Google Gemini API (`gemini-3.8-flash`), securely routed via environment configurations.
-* **Cloud Infrastructure:** Amazon API Gateway $\rightarrow$ AWS Lambda (via Mangum) $\rightarrow$ Amazon S3.
+* **Frontend:** React + Vite, styled using an enterprise brutalist UI/UX system derived from Google Stitch.
+* **Backend:** Python FastAPI + Pandas, wrapped with **Mangum** for native AWS Lambda compatibility.
+* **AI Engine:** Google Gemini API (`gemini-3.8-flash`), optimized for multi-step agentic reasoning and telemetry analysis.
+* **Target Cloud Infrastructure:** Amazon API Gateway $\rightarrow$ AWS Lambda $\rightarrow$ Amazon S3.
 
 ---
 
 ## ✨ Key Features
 
 1. **Dynamic CSV Telemetry Ingestion:** Real-time processing of facility logs with zero hardcoded stubs. Automatically calculates spikes, critical anomalies, and total campus consumption.
-2. **Prescriptive AI Agent (Vane Kernel):** Context-aware conversational intelligence that translates raw data anomalies into exact operational mitigation steps.
+2. **Prescriptive AI Agent (Vane Kernel):** Context-aware conversational intelligence powered by Gemini 3.8 Flash, translating raw data anomalies into exact operational mitigation steps.
 3. **Interactive Impact Simulator:** Real-time slider calculations showing target reduction, estimated kWh saved, financial opex recovered, and CO₂ offset.
 4. **Data-Dense Enterprise UI:** Built with clean lines, high-contrast borders, and custom Recharts visualizers, avoiding generic AI template styling.
 
