@@ -10,7 +10,7 @@ Vane utilizes a zero-hardware architecture designed for seamless cloud deploymen
 
 * **Frontend:** React + Vite, styled using a bespoke enterprise brutalist UI/UX system derived from Google Stitch.
 * **Backend:** Python FastAPI, utilizing Pandas for real-time statistical baseline drift calculations.
-* **AI Engine:** Google Gemini API (`gemini-2.5-flash`), securely routed via environment configurations.
+* **AI Engine:** Google Gemini API (`gemini-3.8-flash`), securely routed via environment configurations.
 * **Cloud Infrastructure:** Amazon API Gateway $\rightarrow$ AWS Lambda (via Mangum) $\rightarrow$ Amazon S3.
 
 ---
