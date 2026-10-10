@@ -1,34 +1,50 @@
-import csv
-import random
+import pandas as pd
+import numpy as np
 from datetime import datetime, timedelta
 
-buildings = ['Block A (Admin)', 'Block B (Library)', 'Block C (Engineering)', 'Hostel Zone']
-start_date = datetime.now() - timedelta(days=30)
 
-with open('campus_energy_log.csv', 'w', newline='') as f:
-    writer = csv.writer(f)
-    writer.writerow(['timestamp', 'building_id', 'sensor_type', 'value'])
-    
-    for day in range(30):
-        for hour in range(24):
-            current_time = start_date + timedelta(days=day, hours=hour)
-            
-            for building in buildings:
-                base_kwh = random.gauss(50, 5)
-                
-                # Active campus hours (8 AM - 6 PM)
-                if 8 <= hour <= 18:
-                    base_kwh *= 2.5
-                    
-                # INJECT ANOMALY: Block C HVAC malfunction last 3 days (6 PM - 10 PM)
-                if building == 'Block C (Engineering)' and day >= 27 and 18 <= hour <= 22:
-                    base_kwh *= 3.8 
-                    
-                writer.writerow([
-                    current_time.strftime('%Y-%m-%d %H:00:00'), 
-                    building, 
-                    'electricity_kwh', 
-                    round(base_kwh, 2)
-                ])
+def generate_csv(filename, anomaly_building=None, anomaly_multiplier=1.0):
+    # Generate 10 days of hourly timestamps
+    end_date = datetime(2026, 10, 10, 23, 0)
+    start_date = end_date - timedelta(days=10)
+    timestamps = pd.date_range(start=start_date, end=end_date, freq='h')
 
-print("Successfully generated campus_energy_log.csv with ~2,800 rows.")
+    buildings = ['Block A', 'Block B', 'Block C']
+    base_loads = {'Block A': 120, 'Block B': 180, 'Block C': 150}
+
+    data = []
+
+    for ts in timestamps:
+        # Determine if we are in the "last 3 days" anomaly window
+        is_recent = ts >= (end_date - timedelta(days=3))
+        # Determine if it's evening hours (6 PM - 10 PM) for the narrative
+        is_evening = 18 <= ts.hour <= 22
+
+        for b in buildings:
+            # Base value with normal random fluctuation (±10%)
+            val = base_loads[b] * np.random.uniform(0.9, 1.1)
+
+            # Inject anomaly if applicable
+            if b == anomaly_building and is_recent and is_evening:
+                val *= anomaly_multiplier
+
+            data.append({
+                'timestamp': ts.strftime('%Y-%m-%d %H:%M:%S'),
+                'building_id': b,
+                'value': round(val, 2)
+            })
+
+    df = pd.DataFrame(data)
+    df.to_csv(filename, index=False)
+    print(f"Generated {filename} ({len(df)} rows)")
+
+
+# We increased the multiplier to 1.85 (85% spike during the evening).
+# This mathematically forces the 24-hour average to rise by ~18%, triggering the CRITICAL UI!
+generate_csv('telemetry_demo_block_c_spike.csv', anomaly_building='Block C', anomaly_multiplier=1.85)
+
+# Backup demo for Block A
+generate_csv('telemetry_demo_block_a_spike.csv', anomaly_building='Block A', anomaly_multiplier=1.75)
+
+# Nominal baseline (remains normal)
+generate_csv('telemetry_demo_nominal.csv')

@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Vane - Serverless Environmental Operations Agent Stack
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+
+Resources:
+  VaneApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/
+      Handler: main.handler
+      Runtime: python3.11
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+
+  TelemetryStorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: vane-telemetry-storage
+
+Outputs:
+  VaneApiUrl:
+    Description: "API Gateway Endpoint URL for Vane Agent"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
