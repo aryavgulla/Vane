@@ -7,7 +7,7 @@ export default function App() {
   const [uploading, setUploading] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
   const [simulationPct, setSimulationPct] = useState(15);
-  const [systemToast, setSystemToast] = useState(null); // Production notifications
+  const [systemToast, setSystemToast] = useState(null);
   const chatEndRef = useRef(null);
 
   const [chatHistory, setChatHistory] = useState([
@@ -21,6 +21,18 @@ export default function App() {
   const showToast = (message, type = 'info') => {
     setSystemToast({ message, type });
     setTimeout(() => setSystemToast(null), 4000);
+  };
+
+  // Modern SaaS Markdown Parser for the Chat UI
+  const formatMessage = (text) => {
+    let html = text
+      .replace(/### (.*?)(?=\n|$)/g, '<div class="text-white font-semibold mt-4 mb-2 text-[13px] tracking-wide uppercase">$1</div>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
+      .replace(/^- (.*?)(?=\n|$)/gm, '<li class="ml-4 list-disc my-1.5 pl-1">$1</li>')
+      .replace(/\n/g, '<br />')
+      .replace(/(<br \/>){2,}/g, '<div class="h-3"></div>');
+
+    return { __html: html };
   };
 
   const handleFileUpload = async (e) => {
@@ -56,7 +68,7 @@ export default function App() {
       showToast('Gateway Timeout: Could not reach Vane API.', 'error');
     } finally {
       setUploading(false);
-      e.target.value = ''; // Reset input
+      e.target.value = '';
     }
   };
 
@@ -72,7 +84,6 @@ export default function App() {
     const formData = new FormData();
     formData.append('query', userMessage);
 
-    // Production Market Data Injection
     const context = dashboardData ? JSON.stringify({
       metrics: dashboardData.summary,
       temporal_insight: dashboardData.temporal_insight,
@@ -109,7 +120,6 @@ export default function App() {
   return (
     <div className="bg-[#090a0d] text-slate-200 font-sans antialiased min-h-screen relative overflow-x-hidden selection:bg-cyan-500/20 selection:text-cyan-300 p-6 lg:p-10">
 
-      {/* Toast Notification System */}
       {systemToast && (
         <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-xs font-bold tracking-wide border shadow-2xl transition-all ${
           systemToast.type === 'error' ? 'bg-rose-500/10 border-rose-500/40 text-rose-300' : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
@@ -205,21 +215,32 @@ export default function App() {
 
         {/* Left Column */}
         <div className="lg:col-span-5 flex flex-col gap-6">
+
           <section className="rounded-2xl bg-[#171920]/90 p-6 border border-white/[0.04]">
-            <h2 className="text-xs font-extrabold tracking-wider text-rose-400 uppercase mb-3">Priority Alert</h2>
+            <h2 className={`text-xs font-extrabold tracking-wider uppercase mb-3 ${dashboardData && highestSpike > 15 ? 'text-rose-400' : 'text-slate-400'}`}>
+              Priority Alert
+            </h2>
+
             <p className="text-sm text-slate-300 mb-4">
-              {dashboardData && highestSpike > 15 ? (
+              {!dashboardData ? (
+                <span className="text-slate-500">Awaiting telemetry ingestion to evaluate anomaly indexes.</span>
+              ) : highestSpike > 15 ? (
                 <>Electricity consumption in <strong className="text-white">{criticalNode}</strong> is <span className="text-rose-400">+{highestSpike}%</span> above normal.</>
               ) : (
-                <span className="text-slate-500">Awaiting telemetry ingestion to evaluate anomaly indexes.</span>
+                <span className="text-emerald-400 font-medium">System Nominal. All facility nodes are operating within established baselines.</span>
               )}
             </p>
+
             <button
               onClick={(e) => handleAgentQuery(e, `Investigate the +${highestSpike}% anomaly in ${criticalNode} and pinpoint the cause.`)}
-              disabled={!dashboardData || loading}
-              className="w-full py-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-200 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              disabled={!dashboardData || highestSpike <= 15 || loading}
+              className={`w-full py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:cursor-not-allowed ${
+                dashboardData && highestSpike > 15
+                  ? 'bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-200 disabled:opacity-50'
+                  : 'bg-white/[0.02] border border-white/[0.05] text-slate-500'
+              }`}
             >
-              [ Investigate Root Cause ]
+              {dashboardData && highestSpike <= 15 ? '[ No Anomalies Detected ]' : '[ Investigate Root Cause ]'}
             </button>
           </section>
 
@@ -313,58 +334,71 @@ export default function App() {
             </div>
           </section>
 
-          <section className="rounded-2xl bg-[#171920]/90 border border-white/[0.04] flex flex-col overflow-hidden min-h-[420px]">
-            <div className="px-6 py-4 border-b border-white/[0.04] bg-[#1c1f27]/40 flex justify-between items-center">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200">Ask Vane</h2>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/[0.05] text-slate-300 border border-white/[0.05]">LLM: GEMINI-3.8-FLASH</span>
+          <section className="rounded-2xl bg-[#13151a] border border-white/[0.04] flex flex-col overflow-hidden min-h-[420px] shadow-lg">
+            <div className="px-6 py-4 border-b border-white/[0.04] bg-[#1a1d24]/50 flex justify-between items-center">
+              <h2 className="text-sm font-semibold tracking-wide text-slate-200">Vane Assistant</h2>
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="text-[11px] font-medium text-slate-400">Gemini 3.8 Flash</span>
+              </div>
             </div>
 
-            <div className="p-6 flex-1 flex flex-col gap-4 max-h-[340px] overflow-y-auto">
+            <div className="p-6 flex-1 flex flex-col gap-6 max-h-[340px] overflow-y-auto scroll-smooth">
               {chatHistory.map((msg, idx) => (
                 <div key={idx} className={`flex flex-col gap-1.5 ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
-                  <span className="text-[10px] font-mono text-slate-500 uppercase">
-                    {msg.sender === 'user' ? 'OPERATOR' : 'VANE AGENT'}
+                  <span className="text-[11px] font-medium text-slate-500 px-1">
+                    {msg.sender === 'user' ? 'You' : 'Vane'}
                   </span>
-                  <div className={`p-4 rounded-xl text-xs leading-relaxed max-w-lg ${
+
+                  <div className={`p-4 rounded-2xl text-[13px] leading-relaxed max-w-[85%] font-sans transition-all ${
                     msg.sender === 'user' 
-                      ? 'bg-cyan-500/10 border border-cyan-500/20 text-slate-200' 
-                      : 'bg-[#1c1f27]/80 border border-white/[0.03] text-slate-300 font-mono whitespace-pre-wrap'
+                      ? 'bg-[#262933] text-slate-100 border border-white/5 rounded-br-sm shadow-sm' 
+                      : 'bg-transparent text-slate-300 border border-white/[0.04] bg-white/[0.02] rounded-bl-sm shadow-sm'
                   }`}>
-                    <div dangerouslySetInnerHTML={{__html: msg.text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')}} />
+                    <div
+                      dangerouslySetInnerHTML={formatMessage(msg.text)}
+                      className="[&>li]:text-slate-300 marker:text-cyan-500"
+                    />
                   </div>
                 </div>
               ))}
+
               {loading && (
-                <div className="p-4 rounded-xl bg-[#1c1f27]/80 border border-white/[0.03] text-xs text-slate-400 animate-pulse font-mono">
-                  Computing operational directives...
+                <div className="flex flex-col gap-1.5 items-start">
+                  <span className="text-[11px] font-medium text-slate-500 px-1">Vane</span>
+                  <div className="p-4 rounded-2xl rounded-bl-sm bg-transparent border border-white/[0.04] bg-white/[0.02] flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  </div>
                 </div>
               )}
               <div ref={chatEndRef} />
             </div>
 
-            <div className="px-4 pt-3 flex flex-wrap gap-2 bg-[#1c1f27]/40 border-t border-white/[0.04]">
-              <button onClick={(e) => handleAgentQuery(e, "Why did our energy consumption increase this week?")} disabled={!dashboardData || loading} className="px-3 py-1.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-[11px] text-slate-300 transition-colors disabled:opacity-30">
-                1. Investigate
+            <div className="px-5 pt-4 pb-2 flex flex-wrap gap-2.5 bg-[#1a1d24]/50 border-t border-white/[0.04]">
+              <button onClick={(e) => handleAgentQuery(e, "Why did our energy consumption increase this week?")} disabled={!dashboardData || loading} className="px-4 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-[12px] font-medium text-slate-300 transition-all disabled:opacity-30">
+                Investigate Anomaly
               </button>
-              <button onClick={(e) => handleAgentQuery(e, "What are the three highest-impact things we can do?")} disabled={!dashboardData || loading} className="px-3 py-1.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-[11px] text-slate-300 transition-colors disabled:opacity-30">
-                2. Recommend
+              <button onClick={(e) => handleAgentQuery(e, "What are the three highest-impact things we can do?")} disabled={!dashboardData || loading} className="px-4 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-[12px] font-medium text-slate-300 transition-all disabled:opacity-30">
+                Recommend Interventions
               </button>
-              <button onClick={(e) => handleAgentQuery(e, "I only have ₹1 lakh. What should I prioritize?")} disabled={!dashboardData || loading} className="px-3 py-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-[11px] text-rose-300 transition-colors disabled:opacity-30 font-semibold">
-                3. Optimize Budget
+              <button onClick={(e) => handleAgentQuery(e, "I only have ₹1 lakh. What should I prioritize?")} disabled={!dashboardData || loading} className="px-4 py-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-[12px] font-medium text-cyan-300 transition-all disabled:opacity-30">
+                Optimize Budget Limit
               </button>
             </div>
 
-            <form onSubmit={handleAgentQuery} className="p-4 bg-[#1c1f27]/40 flex gap-2">
+            <form onSubmit={handleAgentQuery} className="p-4 bg-[#1a1d24]/50 flex gap-3">
               <input
                 type="text"
-                placeholder={dashboardData ? "Command Vane Kernel..." : "Upload telemetry CSV to initialize..."}
+                placeholder={dashboardData ? "Ask Vane a question..." : "Upload telemetry CSV to start..."}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 disabled={!dashboardData || loading}
-                className="flex-1 py-3 px-4 rounded-xl bg-[#111317] border border-white/[0.06] text-xs text-slate-100 focus:outline-none focus:border-cyan-500/40 disabled:opacity-50"
+                className="flex-1 py-3 px-4 rounded-xl bg-[#0b0c10] border border-white/[0.06] text-[13px] font-sans text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/20 disabled:opacity-50 transition-all shadow-inner"
               />
-              <button type="submit" disabled={loading || !dashboardData} className="px-5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 transition-colors disabled:opacity-50">
-                Execute
+              <button type="submit" disabled={loading || !dashboardData} className="px-6 rounded-xl bg-white text-black font-semibold text-[13px] hover:bg-slate-200 transition-all disabled:opacity-50 disabled:bg-white/10 disabled:text-white/40 shadow-sm">
+                Send
               </button>
             </form>
           </section>
